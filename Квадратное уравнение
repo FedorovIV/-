@@ -1,0 +1,26 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <locale.h>
+#include <math.h>
+
+int main()
+{
+    setlocale(LC_ALL, "Rus");
+    double a, b, c;
+    scanf("%lf %lf %lf", &a, &b, &c);
+    double D;
+    D = b*b - 4*a*c; //Считаю дискриминант
+    if (D < 0) printf("Решений нет");
+    if (D == 0)
+    {
+        double x1 = -b/(2*a);
+        printf("%0.4lf", x1);
+    }
+    if (D > 0)
+    {
+        double x1, x2;
+        x1 = (-b + sqrt(D))/(2*a);
+        x2 = (-b - sqrt(D))/(2*a);
+        printf("%0.4lf %0.4lf", x1, x2);
+    }
+}
