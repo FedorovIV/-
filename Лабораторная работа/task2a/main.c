@@ -18,27 +18,13 @@ int main(int argc, char **argv)
             a[i][j] = 10 * i + j;
         }
     }
-
-    clock_t start = clock(); 
-                
-    for (i = 1; i < ISIZE; i++)
+    for (i = 0; i < ISIZE - 1; i++)
     {
-        for (j = 0; j < JSIZE - 1; j++)
+        for (j = 1; j < JSIZE; j++)
         {
-            a[i][j] = sin(2 * a[i - 1][j + 1]);
+            a[i][j] = sin(0.1 * a[i + 1][j - 1]);
         }
     }
-
-    // Измерение времени окончания работы цикла
-    clock_t end = clock();
-    
-    // Вычисление времени выполнения
-    double time_taken = ((double)(end - start)) / CLOCKS_PER_SEC;
-
-    // Вывод времени выполнения
-    printf("Time taken for computation: %f seconds\n", time_taken);
-
-
     ff = fopen("result.txt", "w");
     for (i = 0; i < ISIZE; i++)
     {
