@@ -2,11 +2,11 @@
 ### MPI
 Компиляция
 ```
-mpicc -o mpi.o MPI.c -lm
+mpicc -o mpi.out mpi.c -lm
 ```
 Запуск
 ```
-mpirun -np 4 ./mpi_program
+mpirun -np 4 ./mpi.out
 ```
 ### OpenMP
 

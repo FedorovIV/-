@@ -4,8 +4,8 @@
 #include <time.h>
 #include <omp.h> // Добавляем заголовочный файл OpenMP
 
-#define ISIZE 2500
-#define JSIZE 2500
+#define ISIZE 500
+#define JSIZE 500
 
 int main(int argc, char **argv) {
     double a[ISIZE][JSIZE];
@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
     // Вывод времени выполнения
     printf("Time taken for computation: %f seconds\n", time_taken);
 
-    ff = fopen("result.txt", "w");
+    ff = fopen("resultOpenMP.txt", "w");
     for (i = 0; i < ISIZE; i++) {
         for (j = 0; j < JSIZE; j++) {
             fprintf(ff, "%f ", a[i][j]);

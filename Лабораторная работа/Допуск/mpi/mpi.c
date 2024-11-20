@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
 
     // Записываем результат в файл только процессом 0
     if (rank == 0) {
-        ff = fopen("result.txt", "w");
+        ff = fopen("resultMPI.txt", "w");
         for (i = 0; i < ISIZE; i++) {
             for (j = 0; j < JSIZE; j++) {
                 fprintf(ff, "%f ", a[i][j]);
