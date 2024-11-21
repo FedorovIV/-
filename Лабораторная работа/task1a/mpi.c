@@ -1,20 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <mpi.h>
 #include <time.h>
+#include <mpi.h>
 
-#define ISIZE 500
-#define JSIZE 500
+#define ISIZE 50
+#define JSIZE 50
 
 int main(int argc, char **argv)
 {
     double a[ISIZE][JSIZE];
-    double local_a[ISIZE][JSIZE]; // Местный массив
     int i, j;
     FILE *ff;
 
-    // Подготовительная часть – заполнение некими данными
     for (i = 0; i < ISIZE; i++)
     {
         for (j = 0; j < JSIZE; j++)
@@ -28,62 +26,44 @@ int main(int argc, char **argv)
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    // Заполнение массива
-    if (rank == 0) // только процесс 0 заполняет массив
+    printf("Rank: %d, Size: %d\n", rank, size);
+
+    clock_t start = clock();
+
+    int portion_size = ISIZE / size;
+    int start_row = rank * portion_size + 1;
+    int end_row = (rank == size - 1) ? ISIZE : start_row + portion_size;
+
+    for (i = start_row; i < end_row; i++)
     {
-        for (int i = 0; i < ISIZE; i++)
-        {
-            for (int j = 0; j < JSIZE; j++)
-            {
-                a[i][j] = 10 * i + j;
-            }
-        }
-    }
-
-    // Рассылаем данные всем процессам
-    MPI_Bcast(a, ISIZE * JSIZE, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-    // Параллельные вычисления
-    int rows_per_process = ISIZE / size;
-    int start_row = rank * rows_per_process;
-    int end_row = (rank == size - 1) ? ISIZE : start_row + rows_per_process;
-
-    clock_t start;
-    if (rank == 0)
-    {
-        // Измерение времени начала работы цикла
-        start = clock();
-    }
-
-    // Рассчитываем часть массива
-    for (int i = start_row + 1; i < end_row; i++)
-    {
-        for (int j = 0; j < JSIZE - 1; j++)
+        for (j = 0; j < JSIZE - 1; j++)
         {
             a[i][j] = sin(2 * a[i - 1][j + 1]);
         }
     }
 
-    // Сбор результатов на процессе 0
-    MPI_Gather(&a[start_row][0], rows_per_process * JSIZE, MPI_DOUBLE,
-               a, rows_per_process * JSIZE, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-    if (rank == 0)
+    if (rank != 0)
     {
-        // Измерение времени окончания работы цикла
-        clock_t end = clock();
-
-        // Вычисление времени выполнения
-        double time_taken = ((double)(end - start)) / CLOCKS_PER_SEC;
-
-        // Вывод времени выполнения
-        printf("Time taken for computation: %f seconds\n", time_taken);
+        MPI_Send(&a[start_row][0], portion_size * JSIZE, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+    }
+    else
+    {
+        for (int p = 1; p < size; p++)
+        {
+            int recv_start_row = p * portion_size + 1;
+            int recv_end_row = (p == size - 1) ? ISIZE : recv_start_row + portion_size;
+            MPI_Recv(&a[recv_start_row][0], (recv_end_row - recv_start_row) * JSIZE, MPI_DOUBLE, p, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        }
     }
 
-    // Записываем результат в файл только процессом 0
+    clock_t end = clock();
+    double time_taken = ((double)(end - start)) / CLOCKS_PER_SEC;
+
     if (rank == 0)
     {
-        ff = fopen("resultMPI.txt", "w");
+        printf("Time taken for computation: %f seconds\n", time_taken);
+
+        ff = fopen("result.txt", "w");
         for (i = 0; i < ISIZE; i++)
         {
             for (j = 0; j < JSIZE; j++)
