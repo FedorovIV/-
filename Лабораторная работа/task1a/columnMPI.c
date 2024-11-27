@@ -4,8 +4,9 @@
 #include <time.h>
 #include <mpi.h>
 
-#define ISIZE 3000
-#define JSIZE 3000
+#define ISIZE 20
+#define JSIZE 20
+#define MAX_ROW_IN_MESSAGE 100
 
 int main(int argc, char **argv)
 {
@@ -21,6 +22,7 @@ int main(int argc, char **argv)
     int i, j;
     // Динамическое выделение памяти
     double **a = (double **)malloc(ISIZE * sizeof(double *));
+
     if (a == NULL)
     {
         fprintf(stderr, "Memory allocation failed for rows!\n");
@@ -64,34 +66,56 @@ int main(int argc, char **argv)
     }
 
     ///////////////////////////////////////////
-    double tempRow[JSIZE];
 
+    // Каждый процесс считает свой столбик
     for (i = 1; i < ISIZE; i++)
     {
         for (j = start_column; j < end_column; j++)
         {
             a[i][j] = sin(2 * a[i - 1][j + 1]);
         }
+    }
 
-        if (rank != 0)
+    if (rank ==  0)
+    {
+        for (i = 0; i < ISIZE; i++)
         {
-            MPI_Send(&a[i][start_column], portion_size, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-            MPI_Recv(&a[i][0], JSIZE, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        }
-        else
-        {
-            for (int p = 1; p < size; p++)
+            for (j = 0; j < JSIZE; j++)
             {
-                MPI_Recv(&tempRow[0], portion_size, MPI_DOUBLE, p, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                int p_mul_portion_size = p * portion_size;
-                for (int k = 0; k < portion_size; k++)
-                {
-                    a[i][p_mul_portion_size + k] = tempRow[k];
-                }
+                printf("%f ", a[i][j]);
             }
-            for (int p = 1; p < size; p++)
+            printf("\n");
+        }
+    }
+
+    int rowsInbuffer = (ISIZE <= MAX_ROW_IN_MESSAGE) ? ISIZE : MAX_ROW_IN_MESSAGE;
+    int numOfMessagesForProcces = ISIZE / rowsInbuffer;
+
+    if (rank != 0)
+    {
+        for (i = 0; i < numOfMessagesForProcces; i++)
+        {
+            MPI_Send(a[i * rowsInbuffer], rowsInbuffer * JSIZE, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+        }
+    }
+    else
+    {
+        double buffer[rowsInbuffer][JSIZE];
+
+        for (int p = 1; p < size; p++)
+        {
+            for (i = 0; i < numOfMessagesForProcces; i++)
             {
-                MPI_Send(&a[i][0], JSIZE, MPI_DOUBLE, p, 0, MPI_COMM_WORLD);
+                MPI_Recv(buffer, rowsInbuffer * JSIZE, MPI_DOUBLE, p, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                int i_l, j_l;
+
+                for (i_l = i * rowsInbuffer; i_l < (i + 1) * rowsInbuffer; i_l++)
+                {
+                    for (j_l = p * portion_size; j_l < (p + 1) * portion_size; j_l++)
+                    {
+                        a[i_l][j_l] = buffer[i_l % rowsInbuffer][j_l];
+                    }
+                }
             }
         }
     }

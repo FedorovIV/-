@@ -2,12 +2,12 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
-
 #define ISIZE 4000
 #define JSIZE 4000
 
 int main(int argc, char **argv)
 {
+    int i, j;
     // Динамическое выделение памяти
     double **a = (double **)malloc(ISIZE * sizeof(double *));
     if (a == NULL)
@@ -25,46 +25,24 @@ int main(int argc, char **argv)
         }
     }
 
-    int i, j;
-    FILE *ff;
+    // Запуск таймера
+    clock_t start;
+
+    printf("Start computation\n");
+    start = clock();
+
     for (i = 0; i < ISIZE; i++)
     {
         for (j = 0; j < JSIZE; j++)
         {
-            a[i][j] = 10 * i + j;
+            a[i][j] = i;
+           
         }
     }
 
-    clock_t start = clock(); 
-                
-    for (i = 1; i < ISIZE; i++)
-    {
-        for (j = 0; j < JSIZE - 1; j++)
-        {
-            a[i][j] = sin(2 * a[i - 1][j + 1]);
-        }
-    }
-
-    // Измерение времени окончания работы цикла
     clock_t end = clock();
-    
-    // Вычисление времени выполнения
     double time_taken = ((double)(end - start)) / CLOCKS_PER_SEC;
-
-    // Вывод времени выполнения
     printf("Time taken for computation: %f seconds\n", time_taken);
-
-
-    ff = fopen("result.txt", "w");
-    for (i = 0; i < ISIZE; i++)
-    {
-        for (j = 0; j < JSIZE; j++)
-        {
-            fprintf(ff, "%f ", a[i][j]);
-        }
-        fprintf(ff, "\n");
-    }
-    fclose(ff);
 
     // Освобождение памяти
     for (int i = 0; i < ISIZE; i++)
@@ -72,4 +50,6 @@ int main(int argc, char **argv)
         free(a[i]);
     }
     free(a);
+
+    return 0;
 }
