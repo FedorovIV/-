@@ -3,12 +3,28 @@
 #include <math.h>
 #include <time.h>
 
-#define ISIZE 50
-#define JSIZE 50
+#define ISIZE 1000
+#define JSIZE 1000
 
 int main(int argc, char **argv)
 {
-    double a[ISIZE][JSIZE];
+    // Динамическое выделение памяти
+    double **a = (double **)malloc(ISIZE * sizeof(double *));
+    if (a == NULL)
+    {
+        fprintf(stderr, "Memory allocation failed for rows!\n");
+        return 1;
+    }
+    for (int i = 0; i < ISIZE; i++)
+    {
+        a[i] = (double *)malloc(JSIZE * sizeof(double));
+        if (a[i] == NULL)
+        {
+            fprintf(stderr, "Memory allocation failed for columns!\n");
+            return 1;
+        }
+    }
+
     int i, j;
     FILE *ff;
     for (i = 0; i < ISIZE; i++)
@@ -49,4 +65,11 @@ int main(int argc, char **argv)
         fprintf(ff, "\n");
     }
     fclose(ff);
+
+    // Освобождение памяти
+    for (int i = 0; i < ISIZE; i++)
+    {
+        free(a[i]);
+    }
+    free(a);
 }

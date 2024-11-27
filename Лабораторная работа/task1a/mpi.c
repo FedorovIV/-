@@ -4,8 +4,8 @@
 #include <time.h>
 #include <mpi.h>
 
-#define ISIZE 50
-#define JSIZE 50
+#define ISIZE 100
+#define JSIZE 100
 
 int main(int argc, char **argv)
 {
@@ -28,42 +28,67 @@ int main(int argc, char **argv)
 
     printf("Rank: %d, Size: %d\n", rank, size);
 
-    clock_t start = clock();
-
-    int portion_size = ISIZE / size;
-    int start_row = rank * portion_size + 1;
-    int end_row = (rank == size - 1) ? ISIZE : start_row + portion_size;
-
-    for (i = start_row; i < end_row; i++)
+    clock_t start;
+    if (rank == 0)
     {
-        for (j = 0; j < JSIZE - 1; j++)
+        printf("Start computation\n");
+        start = clock();
+    }
+
+    // Считаем границы
+
+    int portion_size = JSIZE / size;
+    int start_column = rank * portion_size;
+    int end_column = (rank + 1) * portion_size;
+
+    if (rank == size - 1)
+    {
+        end_column = JSIZE - 1;
+    }
+
+    ///////////////////////////////////////////
+
+    for (i = 1; i < ISIZE; i++)
+    {
+        for (j = start_column; j < end_column; j++)
         {
             a[i][j] = sin(2 * a[i - 1][j + 1]);
         }
-    }
 
-    if (rank != 0)
-    {
-        MPI_Send(&a[start_row][0], portion_size * JSIZE, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-    }
-    else
-    {
-        for (int p = 1; p < size; p++)
+        if (rank != 0)
         {
-            int recv_start_row = p * portion_size + 1;
-            int recv_end_row = (p == size - 1) ? ISIZE : recv_start_row + portion_size;
-            MPI_Recv(&a[recv_start_row][0], (recv_end_row - recv_start_row) * JSIZE, MPI_DOUBLE, p, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Send(&a[i][start_column], portion_size, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+            MPI_Recv(&a[i][0], JSIZE, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        }
+        else
+        {
+            double tempRow[JSIZE];
+            for (int p = 1; p < size; p++)
+            {
+                MPI_Recv(&tempRow[0], portion_size, MPI_DOUBLE, p, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                for (int k = 0; k < portion_size; k++)
+                {
+                    a[i][p * portion_size + k] = tempRow[k];
+                }
+            }
+            for (int p = 1; p < size; p++)
+            {
+                MPI_Send(&a[i][0], JSIZE, MPI_DOUBLE, p, 0, MPI_COMM_WORLD);
+            }
         }
     }
 
-    clock_t end = clock();
-    double time_taken = ((double)(end - start)) / CLOCKS_PER_SEC;
 
     if (rank == 0)
     {
+        clock_t end = clock();
+        double time_taken = ((double)(end - start)) / CLOCKS_PER_SEC;
         printf("Time taken for computation: %f seconds\n", time_taken);
+    }
 
-        ff = fopen("result.txt", "w");
+    if (rank == 0)
+    {
+        ff = fopen("resultMPI.txt", "w");
         for (i = 0; i < ISIZE; i++)
         {
             for (j = 0; j < JSIZE; j++)
