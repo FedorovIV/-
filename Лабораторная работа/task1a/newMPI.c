@@ -4,8 +4,8 @@
 #include <time.h>
 #include <mpi.h>
 
-#define ISIZE 1000
-#define JSIZE 1000
+#define ISIZE 4000
+#define JSIZE 4000
 
 int main(int argc, char **argv)
 {
@@ -18,8 +18,8 @@ int main(int argc, char **argv)
 
     printf("Rank: %d, Size: %d\n", rank, size);
 
-    // Динамическое выделение памяти
     int i, j;
+    // Динамическое выделение памяти
     double **a = (double **)malloc(ISIZE * sizeof(double *));
     if (a == NULL)
     {
@@ -32,11 +32,6 @@ int main(int argc, char **argv)
         if (a[i] == NULL)
         {
             fprintf(stderr, "Memory allocation failed for columns!\n");
-            for (int k = 0; k < i; k++) // Освобождение выделенной памяти
-            {
-                free(a[k]);
-            }
-            free(a);
             return 1;
         }
     }
@@ -50,23 +45,31 @@ int main(int argc, char **argv)
         }
     }
 
+    printf("init %d\n", rank);
+
+
     clock_t start;
     if (rank == 0)
     {
         printf("Start computation\n");
-        start = clock(); // Убрали повторное объявление
+        start = clock();
     }
 
     // Считаем границы
+
     int portion_size = JSIZE / size;
     int start_column = rank * portion_size;
-    int end_column = (rank == size - 1) ? JSIZE : (rank + 1) * portion_size; // Устранение ошибки
+    int end_column = (rank + 1) * portion_size;
+
+    if (rank == size - 1)
+    {
+        end_column = JSIZE - 1;
+    }
 
     ///////////////////////////////////////////
 
     for (i = 1; i < ISIZE; i++)
     {
-
         for (j = start_column; j < end_column; j++)
         {
             a[i][j] = sin(2 * a[i - 1][j + 1]);
