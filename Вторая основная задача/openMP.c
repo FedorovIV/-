@@ -2,21 +2,25 @@
 #include <stdlib.h>
 #include <omp.h>
 #include <math.h>
+#include <time.h>
 
 #define N 2000
 #define H 1 / (N - 1)
-#define NUM_OF_NEWTON_ITERATIONS 3
+#define NUM_OF_NEWTON_ITERATIONS 2
+#define N_THREAD 1
 
-// Метод Гаусса с параллелизацией
 void gaussSolve(double **A, double *X, int n)
 {
     int i, j, k;
 
+    // Устанавливаем количество потоков для OpenMP
+    omp_set_num_threads(N_THREAD);
+
     // Прямой ход метода Гаусса
     for (k = 0; k < n - 1; k++)
     {
-// Параллелизируем внутренние строки
-#pragma omp parallel for private(i, j) shared(A, k, n)
+        // Параллелизируем внутренние строки
+        #pragma omp parallel for private(i, j) shared(A, k, n)
         for (i = k + 1; i < n; i++)
         {
             double factor = A[i][k] / A[k][k];
@@ -33,13 +37,14 @@ void gaussSolve(double **A, double *X, int n)
     {
         X[i] = A[i][n] / A[i][i];
 
-#pragma omp parallel for private(j) shared(A, X, i, n)
+        #pragma omp parallel for private(j) shared(A, X, i, n)
         for (j = 0; j < i; j++)
         {
             A[j][n] -= A[j][i] * X[i];
         }
     }
 }
+
 
 void getMatrixYakobi(double **A, double *Y, int n)
 {
@@ -132,9 +137,14 @@ int main()
     {
         Y[i] = Y[0] + i * (Y[N - 1] - Y[0]) / (N - 1);
     }
+    clock_t start = clock();
 
     // Обсчитываем Y методом линеаризации Ньютона
     NewtonLin(Y, N);
+
+    clock_t end = clock();
+    double time_taken = ((double)(end - start)) / CLOCKS_PER_SEC;
+    printf("Time taken for computation: %f seconds\n", time_taken);
 
     // Записываем Y в файл
     FILE *ff = fopen("result.txt", "w");
